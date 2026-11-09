@@ -15,3 +15,9 @@ Change the version with `FLDIGI_VERSION` in `.env`. To verify the download, pass
 - Configure → Rig Control → Hamlib or RigCAT: use serial device `/dev/digirig`. For PTT, use RTS on the same port.
 
 Config, logs and NBEMS data persist in `./data/` (`fldigi`, `fldigi.files`, `nbems`, `NBEMS.files`).
+
+## Helper binaries
+Installed in the container under `/usr/bin`. In fldigi, set these under Configure → Misc → NBEMS:
+- flmsg: `/usr/bin/flmsg`
+- flamp: `/usr/bin/flamp`
+- flwrap: `/usr/bin/flwrap`
