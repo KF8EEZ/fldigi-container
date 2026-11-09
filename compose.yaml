@@ -1,0 +1,41 @@
+# Build and run fldigi with podman.
+#   xhost +SI:localuser:$USER        # one-time per login: let the container use your X display
+#   podman-compose up --build        # (use podman-compose directly; see README)
+#
+# Pick your Digirig serial port in .env (see .env.example).
+
+services:
+  fldigi:
+    image: localhost/fldigi:${FLDIGI_VERSION:-4.2.13}
+    build:
+      context: .
+      dockerfile: Containerfile
+      args:
+        FLDIGI_VERSION: ${FLDIGI_VERSION:-4.2.13}
+        FLMSG_VERSION: ${FLMSG_VERSION:-4.0.24}
+        FLAMP_VERSION: ${FLAMP_VERSION:-2.2.14}
+        FLWRAP_VERSION: ${FLWRAP_VERSION:-1.3.6}
+        UID: ${UID:-1000}
+    # Container uid == host uid, so device nodes / bind mounts are owned correctly.
+    userns_mode: keep-id
+    # Keep the host user's supplementary groups (audio, dialout/uucp) for /dev access.
+    group_add:
+      - keep-groups
+    security_opt:
+      - label=disable          # needed for X11/pulse sockets under SELinux hosts
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      PULSE_SERVER: unix:/run/user/${UID:-1000}/pulse/native
+      XDG_RUNTIME_DIR: /run/user/${UID:-1000}
+    devices:
+      - /dev/snd:/dev/snd                                   # Digirig USB audio (ALSA)
+      - ${DIGIRIG_SERIAL:-/dev/ttyUSB0}:/dev/digirig        # Digirig CAT/PTT serial
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/pulse:/run/user/${UID:-1000}/pulse   # PulseAudio/PipeWire socket
+      - ./data/fldigi:/home/fldigi/.fldigi:Z                # fldigi configuration
+      - ./data/fldigi.files:/home/fldigi/fldigi.files:Z     # logs, received files
+      - ./data/nbems:/home/fldigi/.nbems:Z                  # flmsg/flamp/flwrap config
+      - ./data/NBEMS.files:/home/fldigi/NBEMS.files:Z       # flmsg/flamp/flwrap messages and files
+    network_mode: host         # lets fldigi's XML-RPC / ARQ / flrig ports be reachable by other apps
+    restart: "no"
